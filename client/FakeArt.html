@@ -1,0 +1,168 @@
+<html>
+    <title>Fake Art</title>
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/processing-1.4.1.min.js"></script>
+    <script src="js/jquery.getimagedata.min.js"></script>
+
+    <meta http-equiv="x-dns-prefetch-control" content="off"></head>
+
+    <link rel="stylesheet" type="text/css" href="css/FakeArt.css" />
+<body>
+    <!--The easy way to make a square :P -->
+    <fieldset id="imageContainer">
+        ① tumblr name
+        <input type="text" id="tumblr_name" value="pacopistolas">
+        <input type="button" id="load_tumblr_button" value="[Load Posts]">
+        <hr>
+        ② click image
+        <div id="images"><img src="./Filled squares_files/tumblr_lzgloksQmp1r8sgbbo1_500.gif"><img src="./Filled squares_files/tumblr_m455vqskQV1rw56guo1_500.jpg"><img src="./Filled squares_files/tumblr_m50jgcSNeH1r48wkeo1_500.png"><img src="./Filled squares_files/tumblr_m44bkvuIks1rw1bd8o1_500.jpg"><img src="./Filled squares_files/tumblr_m3183aVrPi1r8p3jmo1_500.gif"><img src="./Filled squares_files/tumblr_m2483tDpZU1qegx52o1_500.jpg"><img src="./Filled squares_files/tumblr_m3zdkxQk1f1qdnodmo1_500.jpg"><img src="./Filled squares_files/tumblr_lzz55afaS01r01qo5o1_500.jpg"><img src="./Filled squares_files/tumblr_m28iivGz8s1qzfvn2o1_500.jpg"><img src="./Filled squares_files/tumblr_lunf3aKNuK1r5fg2uo1_500.gif"><img src="./Filled squares_files/tumblr_lwn7jrfK8J1r5qrimo1_400.gif"><img src="./Filled squares_files/tumblr_lxwn527qNj1qzkfe6o1_500.jpg"><img src="./Filled squares_files/tumblr_m0hf757gFF1r9afojo1_500.jpg"><img src="./Filled squares_files/tumblr_lsvkh7Mk321qg9lbgo1_500.jpg"><img src="./Filled squares_files/tumblr_m0qj4hotYx1r4bihwo1_500.jpg"><img src="./Filled squares_files/tumblr_m4epybJe601qav13yo1_500.jpg"><img src="./Filled squares_files/tumblr_m3ropzMM8L1r39tbvo1_500.jpg"><img src="./Filled squares_files/tumblr_m3ruq9HaBr1r1g3gmo1_500.gif"><img src="./Filled squares_files/tumblr_m4foqlkdTF1qb5i0eo1_500.jpg"><img src="./Filled squares_files/tumblr_m2wmr1Q4HC1qa8xado1_500.jpg"></div>
+    </fieldset>
+    <div id="canvasContent">
+        <canvas id="canvasViewPort" width="200" height="200"></canvas>
+        <hr>
+        <div id="processInfo">Converting Image into [data:image/jpeg;base64,] format <br></div>
+    </div>
+
+<script id="app_behavior" type="text/javascript">
+    var imgData;
+
+    function ClearProcess() {
+        $('#processInfo').empty();
+    }
+
+    function ShowProcess(text) {
+        $('#processInfo').append(text + "<br />");
+    }
+
+    function loadFromTumblr() {
+        $('#images').empty();
+        ShowProcess('Loading post from tumblr');
+        var tumblrName = $('#tumblr_name').val();
+
+        //Tumblr retrieval
+        $.getJSON("http://" + tumblrName + ".tumblr.com/api/read/json?callback=?",
+                function (data) {
+                    $.each(data.posts, function (i, posts) {
+                        var photo500 = this['photo-url-500'];
+                        if (photo500 == undefined) return;
+                        $('#images').append('<img src="' + photo500 + '">');
+                    });
+
+                    addClickEventToImages();
+                });
+    }
+
+    function addClickEventToImages() {
+        $('img').click(function () {
+            var imgUlr = $(this).attr('src');
+
+            ClearProcess();
+            ShowProcess('Converting Image into [data:image\/jpeg;base64,] format ');
+
+            //Canvas don't support modification of remote loaded images, then $.getImageData convert the remote image into embebed image to process locally
+            $.getImageData({
+                url: imgUlr,
+                success: function (image) {
+                    imgData = $(image).attr('src');
+
+                    //start processingJs framework
+                    var canvas = document.getElementById("canvasViewPort");
+                    var p = new Processing(canvas, sketchProc);
+                },
+                error: function (xhr, text_status) {
+                    console.log("bab luck dude :(", xhr, text_status);
+                }
+            });
+        });
+    }
+
+    $(window).load(function () {
+        //process first image
+        $('img').first().click();
+    });
+
+    $(document).ready(function () {
+        console.log(location.href);
+        $('#load_tumblr_button').click(loadFromTumblr);
+        $('#tumblr_name').keypress(function (e) {
+            if (e.keyCode == 13) {
+                loadFromTumblr();
+            }
+        });
+
+        loadFromTumblr();
+    });
+</script>
+<script id="processing_script" type="text/javascript">
+    function sketchProc(processing) {
+        var p = processing;
+        var backgroundcolor;
+
+        function checkRect(img) {
+            var s = img.width;
+            for (var x = 0; x < img.height; x++) {
+                for (var y = 0; y < img.width; y++) {
+                    if (backgroundcolor != img.get(x, y)) {
+                        if (y < s) { s = y; break; }
+                    }
+                }
+            }
+            return s;
+        }
+
+        p.mousePressed = function () {
+            if (imgLoaded)
+                p.background(backImg);
+        }
+
+        var backImg;
+        p.setup = function () {
+            backImg = p.loadImage(imgData);
+            p.image(backImg, 0, 0);
+            backgroundcolor = p.color(255, 255, 255);
+        };
+
+        var imgLoaded = false;
+        p.draw = function () {
+            if (backImg.height != 0 && backImg.width != 0 && !imgLoaded) {
+                imgLoaded = true;
+
+                ShowProcess("aplying gray scale + posterize=8");
+                ShowProcess("Generating squares");
+
+                backImg.filter(p.GRAY);
+                backImg.filter(p.POSTERIZE, 8);
+
+                p.size(backImg.width, backImg.height);
+                p.background(backImg);
+            }
+
+            var x = p.int(p.random(0, p.width));
+            var y = p.int(p.random(0, p.height));
+
+            //if (backgroundcolor == p.get(x, y)) 
+            {
+                var r = p.int(p.random(0, 255));
+                var g = p.int(p.random(0, 255));
+                var b = p.int(p.random(0, 255));
+                p.fill(r, g, b);
+
+                var s = 1;
+                for (; (x + s) < p.width && (y + s) < p.height; s++) {
+                    var img = p.get(x, y, s, s);
+                    var result = checkRect(img);
+                    if (result != s) {
+                        s = result;
+                        break;
+                    }
+                }
+
+                s = p.int(p.random(1, s));
+                p.rect(x, y, s, s);
+            }
+        };
+    }
+</script>
+
+</body></html>

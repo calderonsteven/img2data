@@ -1,0 +1,29 @@
+body
+{
+  font-family: Consolas;
+}
+img
+{
+  max-height: 120px;
+  max-width: 120px;
+  display: block;
+}
+input
+{
+  width: 130px;
+  text-align: center;
+}
+
+#imageContainer
+{
+  position: absolute;
+  width: 130px;
+  left: 8px;
+  top: 8px;
+}
+#canvasContent
+{
+  position: fixed;
+  left: 190px;
+  top: 8px;
+}
